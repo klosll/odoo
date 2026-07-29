@@ -1,0 +1,15 @@
+{
+    "name": "Odoo14_paasa",
+    "folders": [
+        {
+            "path": "."
+        },
+        {
+            "path": "extra-addons/extra"
+        }
+    ],
+    "settings": {
+        "xml.symbols.enabled": false,
+        "python.languageServer": "None"
+    }
+}
