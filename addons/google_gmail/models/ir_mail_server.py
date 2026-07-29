@@ -11,7 +11,7 @@ class IrMailServer(models.Model):
     """Represents an SMTP server, able to send outgoing emails, with SSL and TLS capabilities."""
 
     _name = 'ir.mail_server'
-    _inherit = ['ir.mail_server', 'google.gmail.mixin']
+
 
     @api.constrains('use_google_gmail_service')
     def _check_use_google_gmail_service(self):
