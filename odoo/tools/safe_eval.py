@@ -113,6 +113,11 @@ _SAFE_OPCODES = _EXPR_OPCODES.union(to_opcodes([
     'LOAD_GLOBAL',
 
     'RERAISE', 'JUMP_IF_NOT_EXC_MATCH',
+
+    # Added in Python 3.12+
+    'RETURN_CONST', 'RESUME', 'PUSH_NULL', 'CALL_INTRINSIC_1', 'CALL_INTRINSIC_2',
+    'LOAD_FAST_CHECK', 'LOAD_FAST_AND_CLEAR', 'END_FOR', 'CLEANUP_THROW',
+    'SWAP', 'COPY', 'NOP',
 ])) - _BLACKLIST
 
 _logger = logging.getLogger(__name__)
