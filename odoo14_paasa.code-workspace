@@ -6,6 +6,9 @@
         },
         {
             "path": "extra-addons/extra"
+        },
+        {
+            "path": "../extra-addons/extra_privativo"
         }
     ],
     "settings": {
