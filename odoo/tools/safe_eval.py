@@ -118,6 +118,8 @@ _SAFE_OPCODES = _EXPR_OPCODES.union(to_opcodes([
     'RETURN_CONST', 'RESUME', 'PUSH_NULL', 'CALL_INTRINSIC_1', 'CALL_INTRINSIC_2',
     'LOAD_FAST_CHECK', 'LOAD_FAST_AND_CLEAR', 'END_FOR', 'CLEANUP_THROW',
     'SWAP', 'COPY', 'NOP',
+    'CALL', 'KW_NAMES', 'BINARY_OP', 'BINARY_SLICE',  # Python 3.11+ replaces CALL_FUNCTION/CALL_FUNCTION_KW/CALL_METHOD
+    'POP_JUMP_IF_NONE', 'POP_JUMP_IF_NOT_NONE',  # Python 3.11+ adds NONE variants
 ])) - _BLACKLIST
 
 _logger = logging.getLogger(__name__)
