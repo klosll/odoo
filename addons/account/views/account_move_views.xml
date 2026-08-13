@@ -547,7 +547,6 @@
             <field name="name">account.out.invoice.tree</field>
             <field name="model">account.move</field>
             <field name="inherit_id" ref="account.view_in_invoice_tree"/>
-            <field name="mode">primary</field>
             <field name="arch" type="xml">
                 <field name="currency_id" position="attributes">
                     <attribute name="string">Receipt Currency</attribute>
