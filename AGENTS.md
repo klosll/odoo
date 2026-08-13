@@ -28,6 +28,24 @@ Instancia de **Odoo 15** altamente personalizada para **KLO Ingeniería Informá
 - **Puerto HTTP**: 8015 | **BD**: `klo_dev` | **Datos**: `/opt/odoo15_klo/data/`
 - `workers = 0` → modo mono-proceso (desarrollo); cambiar para producción.
 
+## Depuración en VS Code (F5 / Ctrl+F5)
+
+- Configuraciones en `.vscode/launch.json`:
+  - **Odoo: Ejecutar servidor** (`noDebug: true`) → arranque normal con Ctrl+F5.
+  - **Odoo: Debug** (`--dev all`) → depuración con F5.
+- `.vscode/shortcuts.json` alimenta los botones de la extensión **Odoo Shortcuts** (mvintg.odoo-file): las dos configuraciones con `odooBinPath`, `odooConfPath` y `config`; la activa marca `"active": true`.
+- `debugpy` debe estar instalado en el venv usado por VS Code: `/opt/odoo15_klo/odoo/venv` (symlink → `/opt/odoo15_klo/venv`).
+
+### Pitfall conocido: "Depuración detenida" al pulsar Ctrl+F5
+
+**Causa**: la extensión Python de VS Code guarda en su estado (`state.vscdb`, clave `venv:WORKSPACE_SELECTED`) una selección explícita de intérprete para la carpeta `/opt/odoo15_klo/odoo`. Esa selección tiene **prioridad sobre `python.defaultInterpreterPath`**. Si el venv seleccionado está roto (p. ej. `odoo/venv` con el symlink `python -> /usr/bin/python3.10` que ya no existe en el sistema), el debuggee no arranca y VS Code muestra "Depuración detenida".
+
+**Diagnóstico**: en la pestaña **Output → Python Debugger**, `resolvedInterpreterPath` apuntaba al venv roto.
+
+**Solución aplicada**: `odoo/venv` es ahora un symlink a `/opt/odoo15_klo/venv` (venv funcional), y `.vscode/settings.json` fija `python.defaultInterpreterPath`. Al recargar la ventana (Reload Window) la selección guardada ya resuelve a un intérprete válido.
+
+**Cómo verificarlo**: simular el lanzamiento exacto de VS Code con una sesión DAP real: `python -m debugpy.adapter` + requests `initialize`/`launch`/`configurationDone` (el debuggee queda pausado hasta `configurationDone`, es normal), y comprobar que odoo responde HTTP 200 en 8015.
+
 ## Actualizar repositorios OCA
 
 ```bash
