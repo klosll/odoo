@@ -38,23 +38,30 @@ The project uses **uv** for dependency management. The virtual environment lives
 python odoo-bin -c /opt/odoo18_desarrollo/config/odoo.conf
 
 # Install a new module
-python odoo-bin -c /opt/odoo18_desarrollo/config/odoo.conf -d ryp_dev -i klo_my_module --stop-after-init
+python odoo-bin -c /opt/odoo18_desarrollo/config/odoo.conf -d <db_name> -i klo_my_module --stop-after-init
 
 # Update an existing module (most common dev task)
-python odoo-bin -c /opt/odoo18_desarrollo/config/odoo.conf -d ryp_dev -u klo_my_module --stop-after-init
+python odoo-bin -c /opt/odoo18_desarrollo/config/odoo.conf -d <db_name> -u klo_my_module --stop-after-init
 
 # Run tests for a module
-python odoo-bin -c /opt/odoo18_desarrollo/config/odoo.conf -d ryp_dev --test-enable -u klo_my_module --stop-after-init
+python odoo-bin -c /opt/odoo18_desarrollo/config/odoo.conf -d <db_name> --test-enable -u klo_my_module --stop-after-init
 
 # Alternative: invoke via uv run (matches the _templates/ example commands)
 /home/manolo/.local/bin/uv run /opt/odoo18_desarrollo/uv/.venv/bin/python3 \
     /opt/odoo18_desarrollo/odoo/odoo-bin \
     -c /opt/odoo18_desarrollo/config/odoo.conf \
-    -d ryp_dev -u klo_my_module --stop-after-init
+    -d <db_name> -u klo_my_module --stop-after-init
 ```
 
-Web UI: `http://localhost:8018` · Active DB: set in `config/odoo.conf` → `db_name`  
-Current active databases: `ryp_dev`, `myv_dev`, `proyecta79_dev`, `victorperez_dev`, `viliman_dev` (comment/uncomment to switch).
+Web UI: `http://localhost:8018`
+
+**Active database (read it, never hardcode it):** the DB used for any operation (`-i`, `-u`,
+tests) is **always** the one defined by `db_name` in this project's config file under `config/`
+(in this project: `config/odoo.conf`). It changes depending on the customer/environment being
+worked on. The config filename may vary per project (e.g. `odoo.conf`, `odoo14_paasa.conf`,
+`odoo15.conf`), but the active DB is always read from `db_name`.
+Known databases for this project: `ryp_dev`, `myv_dev`, `proyecta79_dev`, `victorperez_dev`,
+`viliman_dev` (comment/uncomment `db_name` to switch).
 
 ## Creating a New KLO Module
 
