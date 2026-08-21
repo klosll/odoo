@@ -4,6 +4,8 @@
 
 **Uso previsto:** copiar ambos ficheros (este y `Propuesta_entorno_multi_agente_opencode.md`) al servidor Ubuntu de destino y entregarlos a una IA con la petición: *"Instala y configura el entorno multi-agente descrito en estos ficheros"*. Este fichero es autosuficiente y accionable: contiene el contenido exacto de todos los ficheros de configuración y un **runbook** (apartado 10) que la IA debe seguir de principio a fin.
 
+**Reutilizable en otros proyectos:** la configuración global (sección 3, incluidos los agentes gratuitos) se crea **una sola vez** en `~/.config/opencode/` y se carga automáticamente en **cualquier** proyecto Odoo de **cualquier versión (13 a 18+)**. Solo se repite por proyecto la configuración de la sección 4 (`opencode.json`, `AGENTS.md`, skills y comando). Los placeholders `<...>` de la sección 4 se sustituyen con los datos de cada proyecto.
+
 ---
 
 ## 1. Resumen de la arquitectura que se va a crear
@@ -17,8 +19,10 @@ Patrón **Actor-Crítico / Supervisor-Ejecutor** sobre OpenCode:
 | `aprendiz-odoo-hard` | Ejecutor de alta capacidad para migraciones complejas | `opencode-go/glm-5.3` | 0.2 | `subagent` |
 | `sistema-odoo` | Administra PostgreSQL, Ubuntu, librerías y servicios | `opencode-go/glm-5.2` | 0.2 | `subagent` |
 | `explorador-odoo` | Búsqueda y lectura de código (solo lectura) | `opencode-go/deepseek-v4-flash` | 0.1 | `subagent` |
+| `explorador-odoo-free` | Ídem, con modelo gratuito (sin datos confidenciales) | `opencode/deepseek-v4-flash-free` | 0.1 | `subagent` |
 | `revisor-odoo` | Revisión de calidad, seguridad y compatibilidad | `opencode-go/deepseek-v4-pro` | 0.1 | `subagent` |
 | `probador-odoo` | Operativa: instalación/actualización, tests, logs | `opencode-go/gpt-5.6-luna` | 0.2 | `subagent` |
+| `probador-odoo-free` | Ídem, con modelo gratuito (sin datos confidenciales) | `opencode/deepseek-v4-flash-free` | 0.2 | `subagent` |
 | `configurador-odoo` | Instala/replica el entorno multi-agente en servidores Ubuntu | `opencode-go/deepseek-v4-flash` | 0.1 | `subagent` |
 | `configurador-odoo-free` | Ídem con modelo gratuito (sin datos confidenciales) | `opencode/deepseek-v4-flash-free` | 0.1 | `subagent` |
 
@@ -28,6 +32,16 @@ Reglas clave:
 - El supervisor solo puede delegar en los subagentes permitidos mediante `permission.task` (contrato de delegación con `"*": deny`).
 - El supervisor es el agente por defecto (`default_agent`), no edita código directamente: delega y revisa.
 - Los modelos de pago tienen retentiva 0 días; los modelos gratuitos de Zen pueden usar datos para entrenamiento y **no** deben usarse con datos confidenciales.
+
+### Agentes gratuitos (variantes `-free`)
+
+La configuración incluye **3 agentes gratuitos** (`explorador-odoo-free`, `probador-odoo-free` y `configurador-odoo-free`) que usan el modelo gratuito de Zen `opencode/deepseek-v4-flash-free`. Son variantes de sus homólogos de pago con la misma función y permisos, pensadas para:
+
+- **Descargar consumo** de la suscripción OpenCode Go en tareas de exploración, pruebas e instalación del entorno.
+- **Respaldo** cuando se agota la cuota de Go.
+- **Replicación en servidores de desarrollo** sin coste.
+
+Se crean una vez (globales) y **funcionan en cualquier proyecto** igual que el resto de agentes. El supervisor ya puede delegar en ellos (`permission.task`). Regla de seguridad: **no usarlos con datos confidenciales** de clientes (los modelos free pueden usar los datos para entrenamiento).
 
 ---
 
@@ -95,8 +109,10 @@ permission:
     aprendiz-odoo-hard: allow
     sistema-odoo: allow
     explorador-odoo: allow
+    explorador-odoo-free: allow
     revisor-odoo: allow
     probador-odoo: allow
+    probador-odoo-free: allow
     configurador-odoo: allow
     configurador-odoo-free: allow
 ---
@@ -116,6 +132,7 @@ Tus responsabilidades:
    - `explorador-odoo`: búsquedas y lectura de código en el monorepo.
    - `revisor-odoo`: revisión de calidad y seguridad del código entregado.
    - `probador-odoo`: pruebas de operativa (instalación/actualización, logs, tests).
+   - `explorador-odoo-free` / `probador-odoo-free`: variantes gratuitas (sin datos confidenciales).
 4. REVISAR cada entrega contra los criterios de calidad: cumplimiento de AGENTS.md,
    convenciones del proyecto, compatibilidad entre versiones, seguridad, rendimiento.
 5. ENTRENAR al aprendiz: cuando detectes errores, devuélvele un reporte claro con la causa,
@@ -256,7 +273,29 @@ implementaciones, campos, vistas o APIs. Devuelve rutas de archivo:línea y frag
 No modifiques nada.
 ```
 
-### 3.7 `~/.config/opencode/agent/revisor-odoo.md`
+### 3.7 `~/.config/opencode/agent/explorador-odoo-free.md`
+
+```markdown
+---
+description: Explora y responde preguntas sobre el código Odoo (solo lectura) con modelo gratuito.
+mode: subagent
+model: opencode/deepseek-v4-flash-free
+temperature: 0.1
+steps: 10
+permission:
+  edit: deny
+  bash:
+    "*": deny
+    "git status *": allow
+    "git log*": allow
+---
+
+Eres un explorador read-only con modelo gratuito. Busca en el repositorio (incluido el núcleo
+de Odoo) implementaciones, campos, vistas o APIs. Devuelve rutas de archivo:línea y fragmentos
+relevantes. No modifiques nada. No lo uses en servidores con datos confidenciales de clientes.
+```
+
+### 3.8 `~/.config/opencode/agent/revisor-odoo.md`
 
 ```markdown
 ---
@@ -275,7 +314,7 @@ seguridad (inyección SQL, seguridad de registros), rendimiento, adherencia a AG
 convenciones del proyecto y compatibilidad con la versión de Odoo objetivo. No edites código.
 ```
 
-### 3.8 `~/.config/opencode/agent/probador-odoo.md`
+### 3.9 `~/.config/opencode/agent/probador-odoo.md`
 
 ```markdown
 ---
@@ -299,7 +338,32 @@ tests y comprobación de logs. Reporta errores con la traza exacta y el fichero:
 No modifiques el código: solo ejecuta y reporta.
 ```
 
-### 3.9 `~/.config/opencode/agent/configurador-odoo.md`
+### 3.10 `~/.config/opencode/agent/probador-odoo-free.md`
+
+```markdown
+---
+description: "Ejecuta la operativa de Odoo: instalación, actualización, tests y análisis de logs con modelo gratuito."
+mode: subagent
+model: opencode/deepseek-v4-flash-free
+temperature: 0.2
+steps: 10
+permission:
+  edit: deny
+  bash:
+    "*": ask
+    "python odoo-bin*": allow
+    "git *": allow
+    "grep *": allow
+    "psql*": ask
+---
+
+Eres el encargado de pruebas de operativa con modelo gratuito. Ejecuta instalación (-i),
+actualización (-u), tests y comprobación de logs. Reporta errores con la traza exacta y el
+fichero:línea. No modifiques el código: solo ejecuta y reporta. No lo uses en servidores
+con datos confidenciales de clientes.
+```
+
+### 3.11 `~/.config/opencode/agent/configurador-odoo.md`
 
 ```markdown
 ---
@@ -329,8 +393,8 @@ Procedimiento:
    y avisar de que el usuario debe conectar el proveedor con /connect antes de continuar.
 3. Leer el fichero Contexto_de_configuracion_IA_multi-agente.md completo.
 4. Crear directorios: mkdir -p ~/.config/opencode/agent y los .opencode/skills/... del proyecto.
-5. Aplicar el paso 1 (global): ~/.config/opencode/opencode.jsonc y los 9 agentes
-   (7 de trabajo + configurador-odoo + configurador-odoo-free).
+5. Aplicar el paso 1 (global): ~/.config/opencode/opencode.jsonc y los 11 agentes
+   (7 de trabajo + 2 variantes gratuitas + configurador-odoo + configurador-odoo-free).
 6. Aplicar el paso 2 (por proyecto): opencode.json, AGENTS.md, skills y comando /entrenar.
 7. Reproducir el contenido de cada fichero EXACTAMENTE como indica el contexto.
 8. Ejecutar la validación del apartado 7 del contexto y corregir errores YAML/JSON.
@@ -343,7 +407,7 @@ Reglas de oro:
 - Reporta cualquier desviación y cómo la resolviste.
 ```
 
-### 3.10 `~/.config/opencode/agent/configurador-odoo-free.md`
+### 3.12 `~/.config/opencode/agent/configurador-odoo-free.md`
 
 ```markdown
 ---
@@ -371,6 +435,13 @@ con datos confidenciales de clientes.
 ## 4. Paso 2: configuración por proyecto Odoo
 
 Ejecutar desde el directorio del proyecto Odoo de destino (donde se va a lanzar `opencode`). Los ficheros del apartado 3 no se duplican: son globales.
+
+> **Base de datos activa (regla general para todos los proyectos):** la base de datos sobre la
+> que se trabaja se define SIEMPRE en el fichero `.conf` del directorio `config/` mediante el
+> parámetro `db_name`. Cambia según el proyecto/entorno sobre el que se trabaje en cada momento y
+> el nombre del fichero `.conf` puede variar (p. ej. `odoo.conf`, `odoo14_paasa.conf`,
+> `odoo15.conf`). **Nunca hay que hardcodear el nombre de la base de datos**: se lee siempre de
+> `db_name` del `.conf` activo.
 
 ### 4.1 `opencode.json` (raíz del proyecto)
 
@@ -402,8 +473,8 @@ Plantilla con placeholders `<...>` que hay que rellenar con los datos del proyec
 ## Entorno
 - Versión de Odoo: <VERSION> (ej. 14, 17)
 - Python: <PYTHON_VERSION>
-- Base de datos de desarrollo: <DB_NAME>
-- Usuario PostgreSQL: <DB_USER>
+- Base de datos de desarrollo: <DB_NAME> (el valor de `db_name` del fichero `.conf` de `config/`; no hardcodear)
+- Usuario PostgreSQL: <DB_USER> (el valor de `db_user` del fichero `.conf`)
 - Comando de arranque: <CMD> (ej. python odoo-bin)
 - addons_path: <RUTA> (dónde viven los módulos propios y de terceros)
 
@@ -414,6 +485,7 @@ Plantilla con placeholders `<...>` que hay que rellenar con los datos del proyec
 - Idioma de las vistas y traducciones: <IDIOMA> (ej. es_ES)
 
 ## Operativa de prueba
+- `<DB_NAME>` se lee del parámetro `db_name` del fichero `.conf` de `config/` (no hardcodear).
 - Instalación:  <CMD> -d <DB_NAME> -i <modulo> --stop-after-init
 - Actualización: <CMD> -d <DB_NAME> -u <modulo> --stop-after-init
 - Ante un error, localizar el fichero:línea de la traza antes de corregir.
@@ -446,8 +518,10 @@ versiones y operativa de prueba."
   cambios de API de modelos, renames de campos/vistas y módulos dependientes.
 
 ## Operativa de prueba
-- Instalación:  <CMD> -d <DB_NAME> -i <modulo> --stop-after-init
-- Actualización: <CMD> -d <DB_NAME> -u <modulo> --stop-after-init
+- La base de datos activa se define en el fichero `.conf` de `config/` con el parámetro `db_name`
+  (cambia según el proyecto; no la hardcodees).
+- Instalación:  <CMD> -d <db_name> -i <modulo> --stop-after-init
+- Actualización: <CMD> -d <db_name> -u <modulo> --stop-after-init
 - Revisa siempre el log; ante un error, localiza el fichero:línea de la traza antes de corregir.
 ```
 
@@ -463,7 +537,8 @@ librerías, servicios y configuración. Complementa a odoo-dev."
 # Administración del sistema Odoo
 
 ## PostgreSQL
-- Backup:  pg_dump -h localhost -U <user> <db> -F c -f <fichero>.dump
+- Backup:  pg_dump -h localhost -U <db_user> <db_name> -F c -f <fichero>.dump
+  (`<db_name>` se lee de `db_name` y `<db_user>` de `db_user` en el `.conf` de `config/`.)
 - Estado:  psql -c "SELECT datname, pg_size_pretty(pg_database_size(datname)) FROM pg_database;"
 - Rendimiento: EXPLAIN ANALYZE sobre consultas lentas; revisar índices y pg_stat_activity.
 
@@ -488,7 +563,8 @@ agent: supervisor-odoo
 Tarea de entrenamiento: $ARGUMENTS
 
 Planifica, delega en los subagentes (aprendiz-odoo, sistema-odoo, explorador-odoo, revisor-odoo,
-probador-odoo), revisa y corrige. Al final, entrega un resumen de lo aprendido por el aprendiz
+probador-odoo; puedes usar las variantes gratuitas explorador-odoo-free/probador-odoo-free para
+tareas no confidenciales), revisa y corrige. Al final, entrega un resumen de lo aprendido por el aprendiz
 y las recomendaciones de mejora.
 ```
 
@@ -507,9 +583,10 @@ y las recomendaciones de mejora.
 ## 6. Verificación del entorno
 
 1. Con **Tab**: debe aparecer `supervisor-odoo` como agente principal.
-2. Escribir `@aprendiz-odoo` (y el resto de agentes): deben aparecer en el autocompletado.
+2. Escribir `@aprendiz-odoo` (y el resto de agentes, incluidos `@explorador-odoo-free` y `@probador-odoo-free`): deben aparecer en el autocompletado.
 3. Prueba funcional: `/entrenar revisa la estructura de los módulos propios y entrena al aprendiz si algún módulo no cumple las convenciones del proyecto`.
 4. Prueba de delegación: pedir al supervisor *"Busca con @explorador-odoo dónde se define el campo X"* y confirmar que delega.
+5. Prueba de delegación gratuita (opcional): pedir al supervisor *"Busca con @explorador-odoo-free el campo Y"* y confirmar que delega sin usar cuota de Go.
 
 ---
 
@@ -567,9 +644,9 @@ print("Validacion completada")
 
 Comprobar además:
 
-- Los 9 ficheros de agente existen en `~/.config/opencode/agent/` (`supervisor-odoo`, `aprendiz-odoo`, `aprendiz-odoo-hard`, `sistema-odoo`, `explorador-odoo`, `revisor-odoo`, `probador-odoo`, `configurador-odoo`, `configurador-odoo-free`).
+- Los 11 ficheros de agente existen en `~/.config/opencode/agent/` (`supervisor-odoo`, `aprendiz-odoo`, `aprendiz-odoo-hard`, `sistema-odoo`, `explorador-odoo`, `explorador-odoo-free`, `revisor-odoo`, `probador-odoo`, `probador-odoo-free`, `configurador-odoo`, `configurador-odoo-free`).
 - `default_agent: supervisor-odoo` apunta a un agente `mode: primary` y no `hidden`.
-- En `supervisor-odoo.md` el `permission.task` contiene exactamente: `"*": deny` y los 8 subagentes `allow`.
+- En `supervisor-odoo.md` el `permission.task` contiene exactamente: `"*": deny` y los 10 subagentes `allow`.
 - En el proyecto existen `opencode.json`, `AGENTS.md`, las 2 skills y el comando.
 
 ---
@@ -591,7 +668,7 @@ Comprobar además:
 ## 9. Checklist final de la IA
 
 - [ ] `~/.config/opencode/opencode.jsonc` creado con `default_agent: supervisor-odoo`
-- [ ] 9 agentes creados en `~/.config/opencode/agent/` (`supervisor-odoo`, `aprendiz-odoo`, `aprendiz-odoo-hard`, `sistema-odoo`, `explorador-odoo`, `revisor-odoo`, `probador-odoo`, `configurador-odoo`, `configurador-odoo-free`)
+- [ ] 11 agentes creados en `~/.config/opencode/agent/` (`supervisor-odoo`, `aprendiz-odoo`, `aprendiz-odoo-hard`, `sistema-odoo`, `explorador-odoo`, `explorador-odoo-free`, `revisor-odoo`, `probador-odoo`, `probador-odoo-free`, `configurador-odoo`, `configurador-odoo-free`) — **globales, valen para cualquier proyecto**
 - [ ] `opencode.json` del proyecto creado sin `"*": allow`
 - [ ] `AGENTS.md` del proyecto rellenado (sin `<...>` sin sustituir)
 - [ ] Skills `odoo-dev` y `odoo-sysadmin` creadas
@@ -599,6 +676,7 @@ Comprobar además:
 - [ ] Proveedor OpenCode Go conectado y modelos `opencode-go/*` visibles en `/models`
 - [ ] OpenCode reiniciado y `supervisor-odoo` accesible con Tab
 - [ ] Prueba de delegación superada (el supervisor invoca subagentes)
+- [ ] Variantes gratuitas `explorador-odoo-free` y `probador-odoo-free` accesibles y delegables (sin datos confidenciales)
 - [ ] Script de validación (apartado 7) ejecutado sin errores
 
 ---
@@ -610,7 +688,7 @@ Orden exacto que la IA debe seguir para realizar la instalación y configuració
 1. **Preparación:** comprobar que se ejecuta como el usuario de trabajo (no root). Instalar dependencias base: `sudo apt update && sudo apt install -y curl git python3 python3-yaml`.
 2. **Instalar OpenCode** si falta: `curl -fsSL https://opencode.ai/install | bash` y verificar con `opencode --version`.
 3. **Conectar el proveedor (paso manual del usuario):** solicitar al usuario que ejecute `/connect`, elija `OpenCode Go` y pegue la API key; verificar después con `opencode models` que aparecen los modelos `opencode-go/*`.
-4. **Configuración global (sección 3):** `mkdir -p ~/.config/opencode/agent`; crear `opencode.jsonc` y los 9 agentes con el contenido exacto de los apartados 3.1 a 3.10.
+4. **Configuración global (sección 3):** `mkdir -p ~/.config/opencode/agent`; crear `opencode.jsonc` y los 11 agentes con el contenido exacto de los apartados 3.1 a 3.12. **Solo se hace una vez**: en los demás proyectos Odoo estos ficheros globales ya existen y se reutilizan tal cual (incluidos los 3 agentes gratuitos).
 5. **Configuración por proyecto (sección 4):** en el directorio del proyecto, crear `opencode.json`, rellenar `AGENTS.md` sustituyendo **todos** los placeholders `<...>`, y crear las skills y el comando de los apartados 4.3 a 4.5.
 6. **Validación (sección 7):** ejecutar `python3 validar_config.py <ruta_proyecto>`; corregir cualquier error YAML/JSON y repetir hasta que pase sin errores.
 7. **Comprobaciones manuales finales:** el usuario reinicia OpenCode y ejecuta las verificaciones de la sección 6 (Tab → `supervisor-odoo`, `@agentes`, `/entrenar`).
