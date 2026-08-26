@@ -358,16 +358,17 @@ class AccountEdiXmlUBL21Zatca(models.AbstractModel):
     def _l10n_sa_get_additional_tax_total_vals(self, invoice, vals):
         """
             For ZATCA, an additional TaxTotal element needs to be included in the UBL file
-            (Only for the Invoice, not the lines)
-
-            If the invoice is in a different currency from the one set on the company (SAR), then the additional
-            TaxAmount element needs to hold the tax amount converted to the company's currency.
+            (Only for the Invoice, not the lines), but only when the invoice is in a different
+            currency from the one set on the company (SAR): the additional TaxAmount element
+            holds the tax amount converted to the company's currency (BT-111), and per BR-KSA-97
+            it must not be included at all when the invoice currency matches the company's,
+            otherwise it results in two identical TaxTotal nodes.
 
             Business Rules: BT-110 & BT-111
         """
-        curr_amount = abs(vals['taxes_vals']['tax_amount_currency'])
-        if invoice.currency_id != invoice.company_currency_id:
-            curr_amount = abs(vals['taxes_vals']['tax_amount'])
+        if invoice.currency_id == invoice.company_currency_id:
+            return vals['vals']['tax_total_vals']
+        curr_amount = abs(vals['taxes_vals']['tax_amount'])
         return vals['vals']['tax_total_vals'] + [{
             'currency': invoice.company_currency_id,
             'currency_dp': invoice.company_currency_id.decimal_places,
@@ -429,7 +430,7 @@ class AccountEdiXmlUBL21Zatca(models.AbstractModel):
 
         line_vals = super()._get_invoice_line_vals(line, line_id, taxes_vals)
         total_amount_sa = abs(taxes_vals['tax_amount_currency'] + taxes_vals['base_amount_currency'])
-        extension_amount = abs(line_vals['line_extension_amount'])
+        extension_amount = abs(taxes_vals['base_amount_currency'])
         if not line.move_id._is_downpayment() and line._get_downpayment_lines():
             total_amount_sa = extension_amount = 0
             line_vals['price_vals']['price_amount'] = 0

@@ -6,9 +6,10 @@ except ImportError:
     phonenumbers = None
 
 from odoo import _, api, fields, models, modules
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError, ValidationError, RedirectWarning
 
 from odoo.addons.account_edi_proxy_client.models.account_edi_proxy_user import AccountEdiProxyError
+from odoo.addons.account_edi_ubl_cii.models.account_edi_common import DEPRECATED_PEPPOL_EAS
 from odoo.addons.account_peppol.tools.demo_utils import handle_demo
 
 
@@ -73,7 +74,12 @@ class PeppolRegistration(models.TransientModel):
     phone_number = fields.Char(related='selected_company_id.account_peppol_phone_number', readonly=False)
     account_peppol_proxy_state = fields.Selection(related='company_id.account_peppol_proxy_state', readonly=False)
     verification_code = fields.Char(related='edi_user_id.peppol_verification_code', readonly=False)  # TODO remove in master
-    peppol_eas = fields.Selection(related='company_id.peppol_eas', readonly=False, required=True)
+    peppol_eas = fields.Selection(
+        selection='_get_peppol_eas_selection',
+        compute="_compute_peppol_eas",
+        inverse="_inverse_peppol_eas",
+        readonly=False, required=True, store=False,
+    )
     peppol_endpoint = fields.Char(related='company_id.peppol_endpoint', readonly=False, required=True)
     peppol_warnings = fields.Json(
         string="Peppol warnings",
@@ -90,7 +96,6 @@ class PeppolRegistration(models.TransientModel):
     # -------------------------------------------------------------------------
     # ONCHANGE METHODS
     # -------------------------------------------------------------------------
-
     @api.onchange('peppol_endpoint')
     def _onchange_peppol_endpoint(self):
         for wizard in self:
@@ -157,13 +162,13 @@ class PeppolRegistration(models.TransientModel):
         for wizard in self:
             peppol_warnings = {}
             if wizard.company_id._peppol_is_french_company():
-                pdp_module = self.env['ir.module.module']._get('l10n_fr_pdp')
-                if pdp_module and pdp_module.state != 'installed':
+                pdp_info = self.env['res.config.settings']._get_pdp_module_info()
+                if not pdp_info['is_installed']:
                     peppol_warnings['company_french_warning'] = {
                         'level': 'warning',
-                        'message': self.env._("To use the Approved Platform for French E-Invoicing install the module"),
-                        'action_text': self.env._("France - E-Invoicing (Approved Platform)"),
-                        'action': pdp_module.sudo()._get_records_action(),
+                        'message': pdp_info['warning_message'],
+                        'action_text': pdp_info['action_name'],
+                        'action': pdp_info['action'],
                     }
             if (
                 wizard.peppol_eas
@@ -223,9 +228,27 @@ class PeppolRegistration(models.TransientModel):
                 self.env['ir.config_parameter'].sudo().set_param('account_peppol.edi.mode', wizard.edi_mode)
                 return
 
+    @api.depends("company_id.peppol_eas")
+    def _compute_peppol_eas(self):
+        for wizard in self:
+            if wizard.company_id._peppol_is_french_company():
+                wizard.peppol_eas = "0225"
+            else:
+                wizard.peppol_eas = wizard.company_id.peppol_eas
+
+    def _inverse_peppol_eas(self):
+        for wizard in self:
+            wizard.company_id.peppol_eas = wizard.peppol_eas
+
     # -------------------------------------------------------------------------
     # BUSINESS ACTIONS
     # -------------------------------------------------------------------------
+    def _get_peppol_eas_selection(self):
+        return [
+            (eas, label)
+            for eas, label in self.env['res.company']._fields['peppol_eas']._description_selection(self.env)
+            if eas not in DEPRECATED_PEPPOL_EAS or eas == self.env.company.peppol_eas
+        ]
 
     def _ensure_mandatory_fields(self):
         if self.use_parent_connection:
@@ -241,6 +264,17 @@ class PeppolRegistration(models.TransientModel):
             and self.peppol_endpoint == self.parent_company_id.peppol_endpoint
         ):
             raise ValidationError(_("Peppol ID should be different from main company."))
+
+    def _ensure_pdp_not_sent_through_peppol(self):
+        self.ensure_one()
+        if self.peppol_eas != '0225':
+            return
+        pdp_info = self.env['res.config.settings']._get_pdp_module_info()
+        raise RedirectWarning(
+            message=pdp_info['warning_message'],
+            action=pdp_info['action'],
+            button_text=pdp_info['action_name'],
+        )
 
     def _action_open_peppol_form(self, reopen=True):
         view = self.env.ref('account_peppol.peppol_registration_form').sudo()
@@ -314,6 +348,9 @@ class PeppolRegistration(models.TransientModel):
         Calls /update_user on the iap server
         """
         self.ensure_one()
+        # self.peppol_eas resets due to the compute function, so we need to assign it to the company's EAS value.
+        if self.peppol_eas != self.company_id.peppol_eas:
+            self.peppol_eas = self.company_id.peppol_eas
         self._ensure_mandatory_fields()
 
         edi_identification = f'{self.peppol_eas}:{self.peppol_endpoint}'
@@ -352,7 +389,11 @@ class PeppolRegistration(models.TransientModel):
     @handle_demo
     def button_register_peppol_participant(self):
         self.ensure_one()
+        # self.peppol_eas resets due to the compute function, so we need to assign it to the company's EAS value.
+        if self.peppol_eas != self.company_id.peppol_eas:
+            self.peppol_eas = self.company_id.peppol_eas
         self._ensure_mandatory_fields()
+        self._ensure_pdp_not_sent_through_peppol()
 
         if self.use_parent_connection:
             self.company_id.write({
@@ -413,6 +454,9 @@ class PeppolRegistration(models.TransientModel):
         Deregister the edi user from Peppol network
         """
         self.ensure_one()
+        # self.peppol_eas resets due to the compute function, so we need to assign it to the company's EAS value.
+        if self.peppol_eas != self.company_id.peppol_eas:
+            self.peppol_eas = self.company_id.peppol_eas
 
         if self.edi_user_id:
             self.edi_user_id._peppol_deregister_participant()
