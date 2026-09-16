@@ -2651,6 +2651,91 @@ class TestUi(TestPointOfSaleHttpCommon):
         self.main_pos_config.open_ui()
         self.start_pos_tour('test_single_attribute_value_products')
 
+    def test_price_extra_pricelist_based_pricelist(self):
+        """
+        Tests that extra price is carried over when changing to a pricelist based pricelist
+        """
+        extra_attribute = self.env['product.attribute'].create({
+            'name': 'Extra attribute',
+            'create_variant': 'no_variant',
+        })
+        extra_value = self.env['product.attribute.value'].create({
+            'name': 'Extra value',
+            'attribute_id': extra_attribute.id,
+        })
+        attribute_line = self.env['product.template.attribute.line'].create({
+            'product_tmpl_id': self.whiteboard_pen.product_tmpl_id.id,
+            'attribute_id': extra_attribute.id,
+            'value_ids': [Command.set(extra_value.ids)]
+        })
+        attribute_line.product_template_value_ids[0].price_extra = 100
+
+        pricelist_1 = self.env['product.pricelist'].create({'name': 'Pricelist 1'})
+        pricelist_2 = self.env['product.pricelist'].create({
+            'name': 'Pricelist 2',
+            'item_ids': [Command.create({
+                'compute_price': 'percentage',
+                'base': 'pricelist',
+                'base_pricelist_id': pricelist_1.id,
+                'percent_price': 50,
+                'applied_on': '3_global',
+            })],
+        })
+
+        self.main_pos_config.write({
+            'pricelist_id': pricelist_1.id,
+            'available_pricelist_ids': [Command.set([pricelist_1.id, pricelist_2.id])],
+        })
+        self.main_pos_config.with_user(self.pos_user).open_ui()
+        self.start_tour("/pos/ui?config_id=%d" % self.main_pos_config.id, 'test_price_extra_pricelist_based_pricelist', login="pos_user")
+
+    def test_ticket_screen_keeps_variants_collapsed(self):
+        """ Fetching paid orders in the ticket screen must not undo the
+            client-side grouping of a template's variants into one card.
+        """
+        attribute = self.env['product.attribute'].create({
+            'name': 'Side',
+            'create_variant': 'always',
+            'value_ids': [Command.create({'name': 'Bread'}), Command.create({'name': 'Rice'})],
+        })
+        template = self.env['product.template'].create({
+            'name': 'Variant Soup',
+            'available_in_pos': True,
+            'list_price': 10,
+            'taxes_id': False,
+            'attribute_line_ids': [Command.create({
+                'attribute_id': attribute.id,
+                'value_ids': [Command.set(attribute.value_ids.ids)],
+            })],
+        })
+        self.assertEqual(len(template.product_variant_ids), 2)
+
+        self.main_pos_config.with_user(self.pos_user).open_ui()
+        order = self.env['pos.order'].create({
+            'company_id': self.env.company.id,
+            'session_id': self.main_pos_config.current_session_id.id,
+            'config_id': self.main_pos_config.id,
+            'lines': [Command.create({
+                'name': 'OL/0001',
+                'product_id': template.product_variant_ids[0].id,
+                'price_unit': 10.00,
+                'discount': 0,
+                'qty': 1,
+                'tax_ids': False,
+                'price_subtotal': 10.00,
+                'price_subtotal_incl': 10.00,
+            })],
+            'amount_paid': 10.00,
+            'amount_total': 10.00,
+            'amount_tax': 0.0,
+            'amount_return': 0.0,
+            'to_invoice': False,
+            'pos_reference': 'Test/0001',
+        })
+        order.action_pos_order_paid()
+
+        self.start_pos_tour('test_ticket_screen_keeps_variants_collapsed')
+
 
 # This class just runs the same tests as above but with mobile emulation
 class MobileTestUi(TestUi):
