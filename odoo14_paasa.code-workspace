@@ -9,6 +9,15 @@
         },
         {
             "path": "../extra-addons/extra-privado"
+        },
+        {
+            "path": "../extra-addons/klo/avz-odoo-addons"
+        },
+        {
+            "path": "../extra-addons/klo/avz-mrp-addons"
+        },
+        {
+            "path": "../extra-addons/klo/avz-sale-addons"
         }
     ],
     "settings": {
