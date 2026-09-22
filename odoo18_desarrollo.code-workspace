@@ -9,6 +9,9 @@
         },
         {
             "path": "../extra-addons/klo/extra-privado"
+        },
+        {
+            "path": "../extra-addons/klo/avz-odoo-addons"
         }
     ],
     "settings": {
