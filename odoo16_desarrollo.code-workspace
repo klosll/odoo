@@ -13,6 +13,6 @@
     ],
     "settings": {
         "xml.symbols.enabled": false,
-        "python.languageServer": "None"
+        "python.languageServer": "Default"
     }
 }
