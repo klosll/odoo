@@ -41,10 +41,10 @@ import { CTYPES } from "../utils/content_types";
 import { withSequence } from "@html_editor/utils/resource";
 import { compareListTypes } from "@html_editor/main/list/utils";
 import {
-    hasTouch,
     isBrowserChrome,
     isBrowserSafari,
     isMacOS,
+    isMobileOS,
 } from "@web/core/browser/feature_detection";
 
 /**
@@ -485,7 +485,11 @@ export class DeletePlugin extends Plugin {
             // Probably need to get deepest position's element
             // @todo: update fillEmpty
             // @todo: check if nodes does not already have a ZWS/ZWNBSP
-            if (!isBlock(node) && !isTangible(node)) {
+            if (
+                !isBlock(node) &&
+                !isTangible(node) &&
+                !(node.textContent && isWhitespace(node.textContent))
+            ) {
                 node.appendChild(this.document.createTextNode("\u200B"));
                 node.setAttribute("data-oe-zws-empty-inline", "");
             }
@@ -1259,7 +1263,7 @@ export class DeletePlugin extends Plugin {
         if (argsForDelete) {
             this.delete(...argsForDelete);
             ev.preventDefault();
-            if (isBrowserChrome() && hasTouch()) {
+            if (isBrowserChrome() && isMobileOS()) {
                 this.preventDefaultDeleteAndroidChrome(ev);
             }
         }

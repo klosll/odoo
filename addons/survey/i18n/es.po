@@ -6,7 +6,7 @@
 # Wil Odoo, 2025
 # Larissa Manderfeld, 2025
 #
-# "Larissa Manderfeld (lman)" <lman@odoo.com>, 2025.
+# "Larissa Manderfeld (lman)" <lman@odoo.com>, 2025, 2026.
 # Weblate <noreply-mt-weblate@weblate.org>, 2025, 2026.
 # "Noemi Pla Garcia (nopl)" <nopl@odoo.com>, 2025, 2026.
 msgid ""
@@ -14,7 +14,7 @@ msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-04-10 18:37+0000\n"
-"PO-Revision-Date: 2026-08-25 13:21+0000\n"
+"PO-Revision-Date: 2026-10-20 13:18+0000\n"
 "Last-Translator: \"Noemi Pla Garcia (nopl)\" <nopl@odoo.com>\n"
 "Language-Team: Spanish <https://translate.odoo.com/projects/odoo-18/survey/"
 "es/>\n"
@@ -291,16 +291,16 @@ msgid ""
 msgstr ""
 "<div style=\"margin: 0px; padding: 0px; font-size: 13px;\">\n"
 "    <p style=\"margin: 0px; padding: 0px; font-size: 13px;\">\n"
-"        Estimado/a <t t-out=\"object.partner_id.name or "
-"'participant'\">participante</t>:<br/><br/>\n"
+"        Estimado/a <t t-out=\"object.partner_id.name or 'participante'\">"
+"participante</t><br/><br/>:\n"
 "        <t t-if=\"object.survey_id.certification\">\n"
-"            Ha sido invitado a obtener una nueva certificación.\n"
+"            Te invitamos a obtener una nueva certificación.\n"
 "        </t>\n"
 "        <t t-else=\"\">\n"
-"            Estamos realizando una encuesta y agradeceríamos su "
+"            Estamos realizando una encuesta y agradeceríamos tu "
 "participación.\n"
 "        </t>\n"
-"        <div style=\"margin: 16px 0px 16px 0px;\">\n"
+"        </p><div style=\"margin: 16px 0px 16px 0px;\">\n"
 "            <a t-att-href=\"(object.get_start_url())\" style=\"background-"
 "color: #875A7B; padding: 8px 16px 8px 16px; text-decoration: none; color: "
 "#fff; border-radius: 5px; font-size:13px;\">\n"
@@ -313,16 +313,16 @@ msgstr ""
 "            </a>\n"
 "        </div>\n"
 "        <t t-if=\"object.deadline\">\n"
-"            Responda la encuesta antes del <t t-"
-"out=\"format_date(object.deadline) or ''\">05-05-2021</t>.<br><br>\n"
+"            Responde a la encuesta antes del <t t-out=\"format_date"
+"(object.deadline) or ''\">05/05/2021</t>.<br/><br/>\n"
 "        </t>\n"
 "        <t t-if=\"object.survey_id.certification\">\n"
 "            ¡Buena suerte!\n"
 "        </t>\n"
 "        <t t-else=\"\">\n"
-"            Gracias de antemano por su participación.\n"
+"            Gracias de antemano por tu participación.\n"
 "        </t>\n"
-"    </p>\n"
+"    \n"
 "</div>\n"
 "            "
 
@@ -462,8 +462,8 @@ msgid ""
 "                </span>"
 msgstr ""
 "<span class=\"fw-bold text-muted ms-2 d-none d-md-inline\">\n"
-"                    <span id=\"enter-tooltip\">o presionar CTRL+Enter</"
-"span>\n"
+"                    <span id=\"enter-tooltip\">o presionar CTRL+Enter</span>"
+"\n"
 "                </span>"
 
 #. module: survey
@@ -492,8 +492,8 @@ msgid ""
 "                        <span class=\"o_stat_text\" "
 "invisible=\"certifications_count &gt; 1\">Certification</span>"
 msgstr ""
-"<span class=\"o_stat_text\" invisible=\"certifications_count &lt; "
-"2\">Certificaciones</span>\n"
+"<span class=\"o_stat_text\" invisible=\"certifications_count &lt; 2\">"
+"Certificaciones</span>\n"
 "                        <span class=\"o_stat_text\" "
 "invisible=\"certifications_count &gt; 1\">Certificación</span>"
 
@@ -900,8 +900,7 @@ msgstr "Añadir contactos existentes..."
 #. module: survey
 #: model_terms:ir.actions.act_window,help:survey.action_survey_form
 msgid "Add some fun to your presentations by sharing questions live"
-msgstr ""
-"Sus presentaciones pueden ser más divertidas si hace preguntas en vivo."
+msgstr "Sus presentaciones pueden ser más divertidas si hace preguntas en vivo."
 
 #. module: survey
 #: model:ir.model.fields,field_description:survey.field_survey_invite__emails
@@ -3475,8 +3474,8 @@ msgstr ""
 "Idioma de traducción opcional (código ISO) a seleccionar para el envío de "
 "correos electrónicos. Si no se selecciona esta opción, se utilizará la "
 "versión en inglés. Por lo general, se usa una expresión de marcador de "
-"posición para indicar el idioma adecuado, por ejemplo, "
-"{{ object.partner_id.lang }}."
+"posición para indicar el idioma adecuado, por ejemplo, {{ "
+"object.partner_id.lang }}."
 
 #. module: survey
 #: model_terms:ir.ui.view,arch_db:survey.survey_question_form

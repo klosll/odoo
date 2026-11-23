@@ -3,6 +3,7 @@ import base64
 import json
 import logging
 import os
+import secrets
 import shutil
 import subprocess
 import tempfile
@@ -23,6 +24,7 @@ import odoo.sql_db
 import odoo.tools
 from odoo import SUPERUSER_ID
 from odoo.exceptions import AccessDenied
+from odoo.modules.db import FunctionStatus, has_unaccent
 from odoo.release import version_info
 from odoo.sql_db import db_connect
 from odoo.tools import SQL
@@ -155,7 +157,7 @@ def _create_empty_database(name):
         db = odoo.sql_db.db_connect(name)
         with db.cursor() as cr:
             cr.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
-            if odoo.tools.config['unaccent']:
+            if odoo.tools.config['unaccent'] and has_unaccent(cr) != FunctionStatus.INDEXABLE:
                 cr.execute("CREATE EXTENSION IF NOT EXISTS unaccent")
                 # From PostgreSQL's point of view, making 'unaccent' immutable is incorrect
                 # because it depends on external data - see
@@ -355,7 +357,11 @@ def restore_db(db, dump_file, copy=False, neutralize_database=False):
                     filestore_path = os.path.join(dump_dir, 'filestore')
 
             pg_cmd = 'psql'
-            pg_args = ['-q', '-f', os.path.join(dump_dir, 'dump.sql')]
+            pg_args = [
+                '-q',
+                '-c', f'\\restrict {secrets.token_hex()}',
+                '-f', os.path.join(dump_dir, 'dump.sql'),
+            ]
 
         else:
             # <= 7.0 format (raw pg_dump output)

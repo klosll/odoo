@@ -5,6 +5,7 @@
 from datetime import datetime, date, time
 from dateutil.relativedelta import relativedelta
 from calendar import monthrange
+from pytz import timezone
 
 from odoo import api, fields, models, tools, _
 from odoo.addons.hr_holidays.models.hr_leave import get_employee_from_context
@@ -434,7 +435,6 @@ class HolidaysAllocation(models.Model):
             else:
                 start_date = max(start_date, first_level_start_date)
 
-        date_to = date_to or fields.Date.today()
         already_accrued = {allocation.id: allocation.already_accrued or (allocation.number_of_days != 0 and allocation.accrual_plan_id.accrued_gain_time == 'start') for allocation in self}
         first_allocation = _("""This allocation have already ran once, any modification won't be effective to the days allocated to the employee. If you need to change the configuration of the allocation, delete and create a new one.""")
         for allocation in self:
@@ -444,6 +444,9 @@ class HolidaysAllocation(models.Model):
             level_ids = allocation.accrual_plan_id.level_ids
             if not level_ids:
                 continue
+            if not date_to:
+                employee_tz = timezone(allocation.employee_id.tz or 'UTC')
+                date_to = datetime.now(employee_tz).date()
             # "cache" leaves taken, as it gets recomputed every time allocation.number_of_days is assigned to. Without this,
             # every loop will take 1+ second. It can be removed if computes don't chain in a way to always reassign accrual plan
             # even if the value doesn't change. This is the best performance atm.
@@ -771,11 +774,20 @@ class HolidaysAllocation(models.Model):
 
         self.add_follower(employee_id)
 
-        if 'number_of_days_display' not in values and 'number_of_hours_display' not in values and 'state' not in values:
+        tracked_fields = {'number_of_days_display', 'number_of_hours_display', 'state', 'date_to'}
+        tracked_updates = tracked_fields.intersection(values)
+        if not tracked_updates:
             res = super().write(values)
             if 'allocation_type' in values:
                 self._add_lastcalls()
             return res
+
+        def get_total_uncovered_duration(extra_data):
+            """ Return the time off duration not covered by any allocation, pending requests and future shortfall included."""
+            excess_days = extra_data.get('excess_days', {})
+            total = sum(leave_date['amount'] for leave_date in excess_days.values())
+            exceeding_duration = extra_data.get('exceeding_duration', 0)
+            return total - min(exceeding_duration, 0)
 
         previous_consumed_leaves = self.employee_id._get_consumed_leaves(leave_types=self.holiday_status_id)
         result = super().write(values)
@@ -784,12 +796,12 @@ class HolidaysAllocation(models.Model):
         if 'allocation_type' in values:
             self._add_lastcalls()
         for allocation in self:
-            current_excess = dict(consumed_leaves[1]).get(allocation.employee_id, {}) \
-                .get(allocation.holiday_status_id, {}).get('excess_days', {})
-            previous_excess = dict(previous_consumed_leaves[1]).get(allocation.employee_id, {}) \
-                .get(allocation.holiday_status_id, {}).get('excess_days', {})
-            total_current_excess = sum(leave_date['amount'] for leave_date in current_excess.values() if not leave_date['is_virtual'])
-            total_previous_excess = sum(leave_date['amount'] for leave_date in previous_excess.values() if not leave_date['is_virtual'])
+            current_extra_data = dict(consumed_leaves[1]).get(allocation.employee_id, {}) \
+                .get(allocation.holiday_status_id, {})
+            previous_extra_data = dict(previous_consumed_leaves[1]).get(allocation.employee_id, {}) \
+                .get(allocation.holiday_status_id, {})
+            total_current_excess = get_total_uncovered_duration(current_extra_data)
+            total_previous_excess = get_total_uncovered_duration(previous_extra_data)
 
             if total_current_excess <= total_previous_excess:
                 continue
@@ -910,6 +922,7 @@ class HolidaysAllocation(models.Model):
             'number_of_days_display': 0.0,
             'number_of_hours_display': 0.0,
             'already_accrued': False,
+            'yearly_accrued_amount': 0,
             'carried_over_days_expiration_date': False,
             'expiring_carryover_days': 0
         }

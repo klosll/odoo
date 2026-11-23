@@ -566,6 +566,22 @@ async function mail_link_preview(request) {
             "mail.record/insert",
             new mailDataHelpers.Store(MailLinkPreview.browse(linkPreviewId)).get_result()
         );
+    } else {
+        const linkPreviewIds = MailLinkPreview.search([["message_id", "=", message_id]]);
+        for (const linkPreviewId of linkPreviewIds) {
+            BusBus._sendone(
+                MailMessage._bus_notification_target(message_id),
+                "mail.record/insert",
+                new mailDataHelpers.Store(MailMessage.browse(message_id), {
+                    linkPreviews: mailDataHelpers.Store.many(
+                        MailLinkPreview.browse(linkPreviewId),
+                        "DELETE",
+                        makeKwArgs({ only_id: true })
+                    ),
+                }).get_result()
+            );
+        }
+        MailLinkPreview.unlink(linkPreviewIds);
     }
 }
 
@@ -827,10 +843,13 @@ async function session_update_and_broadcast(request) {
 
     const { session_id, values } = await parseRequestParams(request);
     const [session] = DiscussChannelRtcSession.search_read([["id", "=", session_id]]);
+    if (!session) {
+        return;
+    }
     const [currentChannelMember] = DiscussChannelMember.search_read([
         ["id", "=", session.channel_member_id[0]],
     ]);
-    if (session && currentChannelMember.partner_id[0] === serverState.partnerId) {
+    if (currentChannelMember.partner_id[0] === serverState.partnerId) {
         DiscussChannelRtcSession._update_and_broadcast(session.id, values);
     }
 }

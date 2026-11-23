@@ -866,7 +866,9 @@ function orderByField(model, orderBy, records) {
             }
         }
         let result;
-        if (v1 === false) {
+        if (v1 === false && v2 === false) {
+            result = 0;
+        } else if (v1 === false) {
             result = 1;
         } else if (v2 === false) {
             result = -1;
@@ -1759,8 +1761,9 @@ export class Model extends Array {
             const record = { id: this._getNextId() };
             ids.push(record.id);
             this.push(record);
-            this._applyDefaults(values, kwargs.context);
-            this._write(values, record.id);
+            const valuesWithDefaults = { ...values };
+            this._applyDefaults(valuesWithDefaults, kwargs.context);
+            this._write(valuesWithDefaults, record.id);
         }
         this.browse(ids)._applyComputesAndValidate();
         return shouldReturnList ? ids : ids[0];

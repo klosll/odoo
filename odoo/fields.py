@@ -336,7 +336,7 @@ class Field(MetaField('DummyField', (object,), {}), typing.Generic[T]):
         self.args = self._args__ = {key: val for key, val in kwargs.items() if val is not SENTINEL}
 
     def __str__(self):
-        if self.name is None:
+        if getattr(self, 'name', None) is None:
             return "<%s.%s>" % (__name__, type(self).__name__)
         return "%s.%s" % (self.model_name, self.name)
 
@@ -4231,6 +4231,10 @@ class PropertiesDefinition(Field):
 
         return value
 
+    def convert_to_export(self, value, record):
+        # record format -> export format (the JSON the import reads back)
+        return json.dumps(value) if value else ''
+
     @classmethod
     def _validate_properties_definition(cls, properties_definition, env):
         """Raise an error if the property definition is not valid."""
@@ -4246,8 +4250,6 @@ class PropertiesDefinition(Field):
                     ', '.join(invalid_keys),
                 )
 
-            check_property_field_value_name(property_definition['name'])
-
             required_keys = set(cls.REQUIRED_KEYS) - property_definition_keys
             if required_keys:
                 raise ValueError(
@@ -4258,6 +4260,7 @@ class PropertiesDefinition(Field):
             property_name = property_definition.get('name')
             if not property_name or property_name in properties_names:
                 raise ValueError(f'The property name {property_name!r} is not set or duplicated.')
+            check_property_field_value_name(property_name)
             properties_names.add(property_name)
 
             property_type = property_definition.get('type')

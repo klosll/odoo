@@ -267,8 +267,10 @@ class StockMove(models.Model):
                 move.picked = False
 
     def _inverse_picked(self):
-        for move in self:
-            move.move_line_ids.picked = move.picked
+        picked_moves = self.filtered('picked')
+        not_picked_moves = self - picked_moves
+        picked_moves.move_line_ids.picked = True
+        not_picked_moves.move_line_ids.picked = False
 
     @api.depends('picking_id.priority')
     def _compute_priority(self):
@@ -1012,13 +1014,13 @@ Please change the quantity done or the rounding precision of your unit of measur
         assert mode in ('generate', 'import')
         default_vals = {}
 
-        def generate_lot_qty(quantity, qty_per_lot):
+        def generate_lot_qty(quantity, qty_per_lot, rounding):
             if qty_per_lot <= 0:
                 raise UserError(_("The quantity per lot should always be a positive value."))
             line_count = int(quantity // qty_per_lot)
             leftover = quantity % qty_per_lot
             qty_array = [qty_per_lot] * line_count
-            if leftover:
+            if not float_is_zero(leftover, precision_rounding=rounding):
                 qty_array.append(leftover)
             return qty_array
 
@@ -1032,7 +1034,8 @@ Please change the quantity done or the rounding precision of your unit of measur
                 default_vals[remove_prefix(key, 'default_')] = context[key]
 
         if default_vals['tracking'] == 'lot' and mode == 'generate':
-            lot_qties = generate_lot_qty(default_vals['quantity'], count)
+            product = self.env['product.product'].browse(default_vals['product_id'])
+            lot_qties = generate_lot_qty(default_vals['quantity'], count, product.uom_id.rounding)
         else:
             lot_qties = [1] * count
 
@@ -2514,7 +2517,12 @@ Please change the quantity done or the rounding precision of your unit of measur
         :rtype: defaultdict
         """
         wh_location_query = self.env['stock.location']._search([('id', 'child_of', warehouse.view_location_id.id)])
-        forecast_lines = self.env['stock.forecasted_product_product']._get_report_lines(False, self.product_id.ids, wh_location_query, location_id or warehouse.lot_stock_id, read=False)
+        # Only the lines of the moves in `self` are read back below, so let the
+        # report skip building the lines of the other outgoing moves.
+        report = self.env['stock.forecasted_product_product'].with_context(
+            forecast_availability_move_ids=frozenset(self._ids),
+        )
+        forecast_lines = report._get_report_lines(False, self.product_id.ids, wh_location_query, location_id or warehouse.lot_stock_id, read=False)
         result = defaultdict(lambda: (0.0, False))
         for line in forecast_lines:
             move_out = line.get('move_out')

@@ -4,6 +4,7 @@ import itertools
 import logging
 
 from collections import defaultdict
+from copy import deepcopy
 
 from odoo import _, api, fields, models, tools
 from odoo.exceptions import UserError, ValidationError
@@ -25,8 +26,12 @@ class ProductTemplate(models.Model):
 
     def default_get(self, fields_list):
         res = super().default_get(fields_list)
-        if 'uom_id' in fields_list and not res.get('uom_id') or self.env.context.get('default_uom_id') is False:
-            res['uom_id'] = self._get_default_uom_id().id
+        if 'uom_id' in fields_list and not res.get('uom_id'):
+            clean_ctxt = dict(self.env.context)
+            clean_ctxt.pop('default_uom_id', None)
+            # Since uom is required, always fallback on a default (if any) even when the context
+            # gives an empty default value.
+            res['uom_id'] = self.with_context(clean_ctxt).default_get(['uom_id']).get('uom_id', False)
         return res
 
     @tools.ormcache()
@@ -928,13 +933,13 @@ class ProductTemplate(models.Model):
         e.g: Black excludes XL and L
         -> XL excludes Black
         -> L excludes Black"""
-        result = dict(exclusions)
+        result = deepcopy(exclusions)
         for key, value in exclusions.items():
             for exclusion in value:
-                if exclusion in result and key not in result[exclusion]:
-                    result[exclusion].append(key)
-                else:
+                if exclusion not in result:
                     result[exclusion] = [key]
+                elif key not in result[exclusion]:
+                    result[exclusion].append(key)
 
         return result
 

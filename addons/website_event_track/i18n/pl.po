@@ -13,8 +13,8 @@ msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-04-10 18:39+0000\n"
-"PO-Revision-Date: 2026-04-16 08:39+0000\n"
-"Last-Translator: \"Marta (wacm)\" <wacm@odoo.com>\n"
+"PO-Revision-Date: 2026-10-20 13:53+0000\n"
+"Last-Translator: Weblate <noreply-mt-weblate@weblate.org>\n"
 "Language-Team: Polish <https://translate.odoo.com/projects/odoo-18/"
 "website_event_track/pl/>\n"
 "Language: pl\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n==1 ? 0 : (n%10>=2 && n%10<=4) && "
 "(n%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && "
 "n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);\n"
-"X-Generator: Weblate 5.16.2\n"
+"X-Generator: Weblate 2026.8.1\n"
 
 #. module: website_event_track
 #: model:mail.template,body_html:website_event_track.mail_template_data_track_confirmation
@@ -54,6 +54,30 @@ msgid ""
 "o-mail-quote=\"1\"/>Mitchell Admin</t>\n"
 "    </t>\n"
 msgstr ""
+"\n"
+"    Dzień dobry <t t-out=\"object.partner_id.name or object.partner_name or "
+"''\">Brandon Freeman</t><br/>\n"
+"    Z przyjemnością pragniemy Cię poinformować, że Twoja propozycja "
+"wystąpienia <t t-out=\"object.name or ''\">O co w tym wszystkim chodzi</t> "
+"została zaakceptowana i potwierdzona na wydarzenie <t t-"
+"out=\"object.event_id.name or ''\">Odsłona kolekcji online OpenWood</t>.\n"
+"    <br/>\n"
+"    Poniżej znajdziesz szczegóły:\n"
+"    <div style=\"margin: 16px 0px 16px 0px;\">\n"
+"        <a t-attf-href=\"/event/{{ object.event_id.id }}/track/{{ "
+"object.id }}\" style=\"padding: 8px 16px 8px 16px; font-size: 14px; color: "
+"#FFFFFF; text-decoration: none !important; background-color: #875A7B; "
+"border: 0px solid #875A7B; border-radius:3px\">\n"
+"            Zobacz dyskusję\n"
+"        </a>\n"
+"    </div>\n"
+"    <br/><br/>\n"
+"    Dziękujemy,\n"
+"    <t t-if=\"user.signature\" data-o-mail-quote-container=\"1\">\n"
+"        <br/>\n"
+"        <t t-out=\"user.signature or ''\" data-o-mail-quote=\"1\">--<br data-"
+"o-mail-quote=\"1\"/>Mitchell Admin</t>\n"
+"    </t>\n"
 
 #. module: website_event_track
 #. odoo-python
@@ -1117,8 +1141,8 @@ msgid ""
 "If checked, automatically publish tracks so that access links to customers "
 "are provided."
 msgstr ""
-"Jeśli zaznaczone, automatycznie publikuje wystąpienia, żeby linki z "
-"dostępem  zostały dostarczone do klientów"
+"Jeśli zaznaczone, automatycznie publikuje wystąpienia, żeby linki z dostępem"
+"  zostały dostarczone do klientów"
 
 #. module: website_event_track
 #: model:ir.model.fields,help:website_event_track.field_event_track__message_needaction
@@ -1996,8 +2020,7 @@ msgstr "Zadanie w trakcie. Naciśnij by oznaczyć jako zablokowane lub zrobione.
 #. module: website_event_track
 #: model_terms:ir.ui.view,arch_db:website_event_track.event_track_stage_view_form
 msgid "Task is blocked. Click to unblock or set as done."
-msgstr ""
-"Zadanie zablokowane. Naciśnij by odblokować lub oznaczyć jako wykonane."
+msgstr "Zadanie zablokowane. Naciśnij by odblokować lub oznaczyć jako wykonane."
 
 #. module: website_event_track
 #. odoo-javascript

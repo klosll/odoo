@@ -14,11 +14,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-17 17:37+0000\n"
-"PO-Revision-Date: 2026-09-16 16:57+0000\n"
+"POT-Creation-Date: 2026-11-20 17:37+0000\n"
+"PO-Revision-Date: 2026-10-28 06:33+0000\n"
 "Last-Translator: Weblate <noreply-mt-weblate@weblate.org>\n"
-"Language-Team: Arabic <https://translate.odoo.com/projects/odoo-18/mail/ar/>"
-"\n"
+"Language-Team: Arabic <https://translate.odoo.com/projects/odoo-18/mail/ar/"
+">\n"
 "Language: ar\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -5458,7 +5458,7 @@ msgstr "مفتاح الواجهة البرمجية لـ Klipy"
 #. module: mail
 #: model_terms:ir.ui.view,arch_db:mail.res_config_settings_view_form
 msgid "Klipy GIF API key"
-msgstr ""
+msgstr "مفتاح الواجهة البرمجية لـ Klipy GIF"
 
 #. module: mail
 #: model_terms:ir.ui.view,arch_db:mail.res_config_settings_view_form
@@ -5491,6 +5491,11 @@ msgstr "مباشر "
 #: model:ir.model.fields,field_description:mail.field_mail_template__lang
 msgid "Language"
 msgstr "اللغة"
+
+#. module: mail
+#: model:ir.model.fields,help:mail.field_mail_message_translation__target_lang
+msgid "Language code used as the target for the translation request."
+msgstr ""
 
 #. module: mail
 #: model:ir.model.fields,field_description:mail.field_fetchmail_server__date
@@ -5925,7 +5930,7 @@ msgstr "إعادة تعيين قالب البريد الإلكتروني "
 #. odoo-python
 #: code:addons/mail/models/mail_render_mixin.py:0
 msgid "Mail Template: '%(name)s' (ID: %(record_id)s)"
-msgstr ""
+msgstr "قالب البريد الإلكتروني: '%(name)s' (المعرف: %(record_id)s)"
 
 #. module: mail
 #: model_terms:ir.ui.view,arch_db:mail.model_search_view
@@ -6078,7 +6083,7 @@ msgstr "التعيين كمنتهي "
 #. odoo-python
 #: code:addons/mail/models/mail_render_mixin.py:0
 msgid "Mass Mailing Template: '%(name)s' (ID: %(record_id)s)"
-msgstr ""
+msgstr "قالب المراسلات الجماعية: '%(name)s' (المُعرِّف: %(record_id)s)"
 
 #. module: mail
 #. odoo-javascript
@@ -6726,7 +6731,7 @@ msgstr "لا سجل لرسائل سابقة"
 #. odoo-python
 #: code:addons/mail/models/mail_render_mixin.py:0
 msgid "No language detected in context"
-msgstr ""
+msgstr "تعذر التعرف على اللغة في السياق"
 
 #. module: mail
 #. odoo-python
@@ -7829,6 +7834,12 @@ msgstr ""
 #: code:addons/mail/static/src/chatter/web/chatter.xml:0
 msgid "Pop out Attachments"
 msgstr "مرفقات تظهر على نوافذ منبثقة "
+
+#. module: mail
+#. odoo-javascript
+#: code:addons/mail/static/src/core/common/attachment_view.js:0
+msgid "Pop out is not supported on mobile."
+msgstr ""
 
 #. module: mail
 #: model:ir.model.fields,field_description:mail.field_fetchmail_server__port
@@ -9149,11 +9160,6 @@ msgid "Shortcut"
 msgstr "اختصار"
 
 #. module: mail
-#: model:ir.model.fields,help:mail.field_mail_message_translation__target_lang
-msgid "Shortened language code used as the target for the translation request."
-msgstr "تم تقصير كود اللغة المستخدَم كالهدف في طلب الترجمة. "
-
-#. module: mail
 #. odoo-javascript
 #: code:addons/mail/static/src/chatter/web/chatter_patch.js:0
 msgid "Show Followers"
@@ -9283,6 +9289,12 @@ msgstr "معلم بنجمة "
 #: model:ir.model.fields,field_description:mail.field_res_users__starred_message_ids
 msgid "Starred Message"
 msgstr "الرسائل المميزة بنجمة "
+
+#. module: mail
+#. odoo-javascript
+#: code:addons/mail/static/src/discuss/core/web/channel_selector.xml:0
+msgid "Start"
+msgstr "بدء"
 
 #. module: mail
 #. odoo-javascript
@@ -9608,7 +9620,7 @@ msgstr "يتطلب إنشاء القالب من الملحن نموذجًا صا
 #. odoo-python
 #: code:addons/mail/models/mail_render_mixin.py:0
 msgid "Template name not identified"
-msgstr ""
+msgstr "لم يتم تحديد اسم القالب"
 
 #. module: mail
 #. odoo-python
@@ -10346,6 +10358,12 @@ msgstr "متن الترجمة "
 #: code:addons/mail/static/src/core/common/message.xml:0
 msgid "Translation Failure"
 msgstr "فشل في الترجمة "
+
+#. module: mail
+#. odoo-python
+#: code:addons/mail/controllers/google_translate.py:0
+msgid "Translation service unavailable"
+msgstr ""
 
 #. module: mail
 #: model:ir.model.fields,field_description:mail.field_mail_activity_plan_template__delay_from
@@ -11388,7 +11406,7 @@ msgstr "يمكنك تجاهل هذه الرسالة بأمان "
 #. odoo-python
 #: code:addons/mail/models/mail_alias_domain.py:0
 msgid "You cannot assign an empty domain name."
-msgstr ""
+msgstr "لا يمكنك تعيين اسم نطاق فارغ."
 
 #. module: mail
 #. odoo-python
@@ -12204,6 +12222,10 @@ msgstr "“%(member_name)s” في “%(channel_name)s” "
 #: code:addons/mail/static/src/core/web/activity.js:0
 msgid "“%s”"
 msgstr "“%s”"
+
+#~ msgid ""
+#~ "Shortened language code used as the target for the translation request."
+#~ msgstr "تم تقصير كود اللغة المستخدَم كالهدف في طلب الترجمة. "
 
 #~ msgid "Search for a GIF"
 #~ msgstr "البحث عن GIF "

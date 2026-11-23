@@ -5,24 +5,15 @@ from odoo import _, models, Command
 from odoo.tools import html2plaintext, cleanup_xml_node, float_is_zero, float_repr, float_round
 from odoo.addons.account.tools import dict_to_xml
 from odoo.addons.account_edi_ubl_cii.models.account_edi_common import EAS_MAPPING
+from odoo.addons.account_edi_ubl_cii.models.account_edi_ubl import UBL_NAMESPACES  # noqa: F401 (other modules still import it from ubl_20)
 from odoo.addons.account_edi_ubl_cii.tools import Invoice, CreditNote, DebitNote
 from odoo.addons.account_edi_ubl_cii.tools.ubl_20_optional_fields import PEPPOL_INVOICE_OPTIONAL_FIELDS, PEPPOL_INVOICE_OPTIONAL_LINE_FIELDS, PEPPOL_CREDIT_NOTE_OPTIONAL_FIELDS, PEPPOL_CREDIT_NOTE_OPTIONAL_LINE_FIELDS
-
-
-UBL_NAMESPACES = {
-    'cbc': "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2",
-    'cac': "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2",
-}
 
 
 class AccountEdiXmlUBL20(models.AbstractModel):
     _name = "account.edi.xml.ubl_20"
     _inherit = 'account.edi.ubl'
     _description = "UBL 2.0"
-
-    def _find_value(self, xpath, tree, nsmap=False):
-        # EXTENDS account.edi.common
-        return super()._find_value(xpath, tree, UBL_NAMESPACES)
 
     # -------------------------------------------------------------------------
     # EXPORT
@@ -558,6 +549,12 @@ class AccountEdiXmlUBL20(models.AbstractModel):
             for vals in allowance_charge_vals_list
             if vals.get('from_fixed_tax')
         )
+        period_vals = {}
+        # deferred_start_date & deferred_end_date are enterprise-only fields
+        if line._fields.get('deferred_start_date') and (line.deferred_start_date or line.deferred_end_date):
+            period_vals.update({'start_date': line.deferred_start_date})
+            period_vals.update({'end_date': line.deferred_end_date})
+
         return {
             'currency': line.currency_id,
             'currency_dp': self._get_currency_decimal_places(line.currency_id),
@@ -569,6 +566,7 @@ class AccountEdiXmlUBL20(models.AbstractModel):
             'tax_total_vals': self._get_invoice_line_tax_totals_vals_list(line, taxes_vals),
             'item_vals': self._get_invoice_line_item_vals(line, taxes_vals),
             'price_vals': self._get_invoice_line_price_vals(line),
+            'invoice_period_vals_list': [period_vals] if period_vals else [],
         }
 
     def _get_invoice_monetary_total_vals(self, invoice, taxes_vals, line_extension_amount, allowance_total_amount, charge_total_amount):
@@ -995,25 +993,6 @@ class AccountEdiXmlUBL20(models.AbstractModel):
                         difference = currency.round(tax_total - tax_lines_total)
                         if not currency.is_zero(difference):
                             tax_lines[0].amount_currency += sign * difference
-
-    # -------------------------------------------------------------------------
-    # IMPORT : helpers
-    # -------------------------------------------------------------------------
-
-    def _get_import_document_amount_sign(self, tree):
-        """
-        In UBL, an invoice has tag 'Invoice' and a credit note has tag 'CreditNote'. However, a credit note can be
-        expressed as an invoice with negative amounts. For this case, we need a factor to take the opposite
-        of each quantity in the invoice.
-        """
-        if tree.tag == '{urn:oasis:names:specification:ubl:schema:xsd:Invoice-2}Invoice':
-            amount_node = tree.find('.//{*}LegalMonetaryTotal/{*}TaxInclusiveAmount')
-            if amount_node is not None and float(amount_node.text) < 0:
-                return 'refund', -1
-            return 'invoice', 1
-        if tree.tag == '{urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2}CreditNote':
-            return 'refund', 1
-        return None, None
 
     # -------------------------------------------------------------------------
     # EXPORT: New (dict_to_xml) helpers

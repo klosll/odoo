@@ -2,6 +2,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from datetime import datetime
+from pytz import timezone, UTC
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
@@ -97,9 +98,12 @@ class HolidaysAllocation(models.Model):
         self.ensure_one()
         if level.frequency != 'hourly' or level.frequency_hourly_source != 'attendance':
             return super()._get_accrual_plan_level_work_entry_prorata(level, start_period, start_date, end_period, end_date)
+
+        employee_tz = timezone(self.employee_id.tz or 'UTC')
         datetime_min_time = datetime.min.time()
-        start_dt = datetime.combine(start_date, datetime_min_time)
-        end_dt = datetime.combine(end_date, datetime_min_time)
+        # A pytz timezone must be localized: given as tzinfo, it is the local mean time (e.g. +00:17 in Brussels)
+        start_dt = employee_tz.localize(datetime.combine(start_date, datetime_min_time)).astimezone(UTC).replace(tzinfo=None)
+        end_dt = employee_tz.localize(datetime.combine(end_date, datetime_min_time)).astimezone(UTC).replace(tzinfo=None)
 
         # Search for any attendance overlapping the window
         attendances = self.env['hr.attendance'].sudo().search([
@@ -110,6 +114,16 @@ class HolidaysAllocation(models.Model):
 
         total_worked_hours = 0.0
         for attendance in attendances:
-            total_worked_hours += attendance._get_worked_hours_in_range(start_dt, end_dt)
+            worked_hours = attendance._get_worked_hours_in_range(start_dt, end_dt)
+            # Only the approved extra hours count: the ones still to approve or refused are left out
+            approved_overtime = attendance.validated_overtime_hours if attendance.overtime_status == 'approved' else 0.0
+            unapproved_overtime = max(0.0, attendance.overtime_hours - approved_overtime)
+            if worked_hours and unapproved_overtime:
+                # Prorated to the part of the attendance in the period (an attendance across midnight)
+                attendance_hours = attendance.worked_hours or attendance._get_worked_hours_in_range(attendance.check_in, attendance.check_out)
+                if attendance_hours:
+                    unapproved_overtime *= min(1.0, worked_hours / attendance_hours)
+                worked_hours = max(0.0, worked_hours - unapproved_overtime)
+            total_worked_hours += worked_hours
 
         return total_worked_hours

@@ -816,19 +816,20 @@ Attempting to double-book your time off won't magically make your vacation 2x be
             validated_leaves._remove_resource_leave()
 
         employee_id = values.get('employee_id', False)
+        if values.get('state'):
+            self._check_approval_update(values['state'])
+            if any(holiday.validation_type == 'both' for holiday in self):
+                if values.get('employee_id'):
+                    employees = self.env['hr.employee'].browse(values.get('employee_id'))
+                else:
+                    employees = self.mapped('employee_id')
+                self._check_double_validation_rules(employees, values['state'])
         if not self.env.context.get('leave_fast_create'):
-            if values.get('state'):
-                self._check_approval_update(values['state'])
-                if any(holiday.validation_type == 'both' for holiday in self):
-                    if values.get('employee_id'):
-                        employees = self.env['hr.employee'].browse(values.get('employee_id'))
-                    else:
-                        employees = self.mapped('employee_id')
-                    self._check_double_validation_rules(employees, values['state'])
+            employee = self.env['hr.employee'].browse(employee_id) or self.employee_id
             if 'date_from' in values:
-                values['request_date_from'] = values['date_from']
+                values['request_date_from'] = datetime.date(values['date_from'].astimezone(pytz.timezone(employee.tz)))
             if 'date_to' in values:
-                values['request_date_to'] = values['date_to']
+                values['request_date_to'] = datetime.date(values['date_to'].astimezone(pytz.timezone(employee.tz)))
         result = super(HolidaysRequest, self).write(values)
         if any(field in values for field in ['request_date_from', 'date_from', 'request_date_from', 'date_to', 'holiday_status_id', 'employee_id', 'state']):
             if not values.get('state') or values.get('state') not in ('refuse', 'cancel'):

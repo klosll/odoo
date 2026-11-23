@@ -1989,28 +1989,28 @@ class TestAccountMoveOutInvoiceOnchanges(AccountTestInvoicingCommon):
                 **self.product_line_vals_1,
                 'amount_currency': 1000.0,
                 'currency_id': self.other_currency.id,
-                'debit': 500.0,
+                'debit': 333.33,
                 'credit': 0.0,
             },
             {
                 **self.product_line_vals_2,
                 'amount_currency': 200.0,
                 'currency_id': self.other_currency.id,
-                'debit': 100.0,
+                'debit': 66.67,
                 'credit': 0.0,
             },
             {
                 **self.tax_line_vals_1,
                 'amount_currency': 180.0,
                 'currency_id': self.other_currency.id,
-                'debit': 90.0,
+                'debit': 60.0,
                 'credit': 0.0,
             },
             {
                 **self.tax_line_vals_2,
                 'amount_currency': 30.0,
                 'currency_id': self.other_currency.id,
-                'debit': 15.0,
+                'debit': 10.0,
                 'credit': 0.0,
             },
             {
@@ -2019,7 +2019,7 @@ class TestAccountMoveOutInvoiceOnchanges(AccountTestInvoicingCommon):
                 'amount_currency': -1410.0,
                 'currency_id': self.other_currency.id,
                 'debit': 0.0,
-                'credit': 705.0,
+                'credit': 470.0,
                 'date_maturity': move_reversal.date,
             },
         ], {
@@ -4660,6 +4660,34 @@ class TestAccountMoveOutInvoiceOnchanges(AccountTestInvoicingCommon):
             },
         ])
 
+    def test_discount_allocation_account_with_price_included_tax(self):
+        """ Test that the discount allocation is computed on the untaxed amount, rounded per account rather than per line """
+        discount_account = self.company_data['default_account_expense'].copy()
+        self.company_data['company'].account_discount_expense_allocation_id = discount_account
+        tax_included = self.env['account.tax'].create({
+            'name': '15% incl',
+            'amount': 15,
+            'price_include_override': 'tax_included',
+        })
+        invoice = self.env['account.move'].create({
+            'move_type': 'out_invoice',
+            'partner_id': self.partner_a.id,
+            'invoice_line_ids': [
+                Command.create({
+                    'product_id': self.product_a.id,
+                    'price_unit': 1.0,
+                    'discount': 20,
+                    'tax_ids': [Command.set(tax_included.ids)],
+                })
+                for _i in range(3)
+            ],
+        })
+        product_line_account = invoice.invoice_line_ids.account_id
+        self.assertRecordValues(invoice.line_ids.filtered(lambda l: l.display_type == 'discount'), [
+            {'account_id': product_line_account.id, 'balance': -0.52},
+            {'account_id': discount_account.id, 'balance': 0.52},
+        ])
+
     def test_invoice_with_empty_currency(self):
         move = self.env['account.move'].create({
             'move_type': 'out_invoice',
@@ -4876,6 +4904,21 @@ class TestAccountMoveOutInvoiceOnchanges(AccountTestInvoicingCommon):
         # Check the narration is in French
         expected_fr = f"<p>Conditions générales : {baseurl} </p>"
         self.assertEqual(invoice.narration, expected_fr)
+
+    def test_narration_kept_on_posted_invoice_on_partner_language_change(self):
+        """Ensure a posted invoice keeps its narration when partner.lang changes."""
+        self.env['ir.config_parameter'].sudo().set_param('account.use_invoice_terms', True)
+        self.env['res.lang']._activate_lang('fr_FR')
+        self.env.company.terms_type = 'html'
+        self.partner_a.lang = 'en_US'
+        invoice = self._create_invoice(partner_id=self.partner_a, post=True)
+        baseurl = self.env.company.get_base_url() + '/terms'
+        expected_en = f"<p>Terms &amp; Conditions: {baseurl}</p>"
+        self.assertEqual(invoice.narration, expected_en)
+
+        self.partner_a.lang = 'fr_FR'
+
+        self.assertEqual(invoice.narration, expected_en, "A posted invoice must keep the terms it was issued with")
 
     def test_multiple_currency_change(self):
         """
@@ -5199,3 +5242,14 @@ class TestAccountMoveOutInvoiceOnchanges(AccountTestInvoicingCommon):
             1000.00,
             msg="Price should be tax included"
         )
+
+    def test_invoice_partner_display_name_ignores_partner_form_context(self):
+        """ Test that granting portal access to a contact does not add context
+            info to the invoice partner display name."""
+        self.partner_a.write({'email': 'partner_a@example.com', 'street': 'Rue du Test 1', 'vat': 'BE0477472701'})
+        invoice = self.init_invoice('out_invoice', partner=self.partner_a, amounts=[100])
+        action = self.partner_a.with_context(show_address=1, show_vat=True).get_formview_action()
+        wizard = self.env['portal.wizard'].with_context(action['context'], active_ids=self.partner_a.ids).create({})
+        wizard.user_ids.action_grant_access()
+        self.env.flush_all()
+        self.assertEqual(invoice.invoice_partner_display_name, 'partner_a')
