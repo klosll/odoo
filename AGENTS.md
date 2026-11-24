@@ -139,6 +139,40 @@ The actual load order (from `config/odoo.conf`) is, highest priority first:
 > legacy `attrs=`/`states=` XML attributes to the Odoo 17+ individual (`invisible`, `readonly`,
 > `required`, `column_invisible`) syntax. Run `python3 replace_attrs.py` and supply the module path.
 
+## Webhook Endpoints — Mandatory Configuration Check
+
+Modules exposing HTTP webhooks (e.g. `klo_whatsapp_order` → `/webhook/openwa`) receive
+requests **without a session cookie**. Odoo resolves the target database using `dbfilter`
+alone. If the regex matches more than one database, the webhook returns **404** and
+messages are silently lost.
+
+**Every installation MUST verify this after changing `config/odoo.conf`:**
+
+1. Pin the active database and use an anchored regex in `config/odoo.conf`:
+
+   ```ini
+   db_name = <active_db>
+   dbfilter = ^<active_db>$
+   ```
+
+   Never use an unanchored pattern such as `dbfilter = klo_dev18` — it also matches
+   `klo_dev18_2`, `klo_dev18_copy`, etc.
+
+2. **Restart Odoo** after any `odoo.conf` change. HTTP routes are registered at startup;
+   `-u ... --stop-after-init` updates the DB but does **not** reload the routing map in
+   running workers.
+
+3. Quick verification (must return **200**):
+
+   ```bash
+   curl -s -o /dev/null -w "%{http_code}" -X POST \
+     http://localhost:8018/webhook/openwa \
+     -H "Content-Type: application/json" \
+     -d '{"event":"message.received","data":{"from":"test@c.us","body":"ping","type":"text","fromMe":false}}'
+   ```
+
+   A **404** means `dbfilter` is ambiguous or the server was not restarted.
+
 ## Key Conventions
 
 - **Language**: Code comments and summaries in **Spanish**; Python identifiers in English.
