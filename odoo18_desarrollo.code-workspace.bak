@@ -1,0 +1,86 @@
+{
+    "name": "Odoo18_desarrollo",
+    "folders": [
+        {
+            "name": "odoo (núcleo)",
+            "path": "."
+        },
+        {
+            "name": "klo/extra",
+            "path": "../extra-addons/klo/extra"
+        },
+        {
+            "name": "klo/extra-privado",
+            "path": "../extra-addons/klo/extra-privado"
+        },
+        {
+            "name": "klo/avz-odoo-addons",
+            "path": "../extra-addons/klo/avz-odoo-addons"
+        },
+        {
+            "name": "data (filestore/sessions)",
+            "path": "../data"
+        },
+        {
+            "name": "backups",
+            "path": "../backups"
+        },
+        {
+            "name": "log",
+            "path": "../log"
+        },
+        {
+            "name": "hdr",
+            "path": "../hdr"
+        }
+    ],
+    "settings": {
+        "python.languageServer": "None",
+        "xml.symbols.enabled": false,
+        "python.defaultInterpreterPath": "/opt/odoo18_desarrollo/uv/.venv/bin/python3",
+
+        "files.watcherExclude": {
+            "**/.git/objects/**": true,
+            "**/.git/subtree-cache/**": true,
+            "**/__pycache__/**": true,
+            "**/*.pyc": true,
+            "**/*.pyo": true,
+            "**/node_modules/**": true,
+            "**/.venv/**": true,
+            "**/venv/**": true,
+            "**/filestore/**": true,
+            "**/sessions/**": true,
+            "**/static/lib/**": true,
+            "**/static/src/lib/**": true,
+            "**/backups/**": true,
+            "**/log/**": true,
+            "**/*.log": true
+        },
+        "search.exclude": {
+            "**/.git": true,
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            "**/*.pyo": true,
+            "**/node_modules": true,
+            "**/.venv": true,
+            "**/venv": true,
+            "**/filestore": true,
+            "**/sessions": true,
+            "**/static/lib": true,
+            "**/static/src/lib": true,
+            "**/backups": true,
+            "**/log": true,
+            "**/*.log": true
+        },
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            "**/*.pyo": true
+        },
+
+        "git.repositoryScanMaxDepth": 1,
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "editor.rulers": [88]
+    }
+}
